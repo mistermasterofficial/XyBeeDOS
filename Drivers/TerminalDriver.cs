@@ -9,114 +9,57 @@ namespace XyBeeDOS.Drivers
 {
     class TerminalInput
     {
-        static Queue<TerminalInput> terminalInputs = new Queue<TerminalInput>();
-
-        string result = "";
-        int cursorleft; int cursortop;
-        private TerminalInput()
-        {
-            terminalInputs.Enqueue(this);
-            cursorleft = Console.CursorLeft; cursortop = Console.CursorTop;
-        }
-        public bool update(bool visible)
-        {
-            if (Sys.KeyboardManager.TryReadKey(out var key))
-            {
-                if (key.Key == Sys.ConsoleKeyEx.Enter)
-                {
-                    return true;
-                }
-                else if (key.Key == Sys.ConsoleKeyEx.Backspace && result.Length > 0)
-                {
-                    result = result.Remove(result.Length - 1);
-                }
-                else if (!char.IsControl(key.KeyChar))
-                {
-                    result += key.KeyChar;
-                }
-            }
-            if (visible)
-            {
-                Console.CursorLeft = cursorleft;
-                Console.CursorTop = cursortop;
-                Console.Write(result);
-            }
-            return false;
-        }
-        public string getResult()
-        {
-            return result;
-        }
-
-        public static bool update(out string result, bool visible)
-        {
-            if (terminalInputs.Count == 0) new TerminalInput();
-
-            bool end = terminalInputs.Peek().update(visible);
-            result = "";
-            if (end)
-            {
-                result = terminalInputs.Peek().getResult();
-                terminalInputs.Dequeue();
-            }
-            return end;
-        }
-
         public static string ReadLine()
         {
             List<char> input = new List<char>();
             int empty_char_count = 0;
             int cursor = 0;
 
-            try
+            while (true)
             {
-                while (true)
+                if (Sys.KeyboardManager.TryReadKey(out var key))
                 {
-                    if (Sys.KeyboardManager.TryReadKey(out var key))
+                    TerminalDriver.MoveCursor(-cursor);
+
+                    if (key.Key == Sys.ConsoleKeyEx.Enter)
                     {
-                        TerminalDriver.MoveCursor(-cursor);
-
-                        if (key.Key == Sys.ConsoleKeyEx.Enter)
-                        {
-                            Console.WriteLine(input.ToArray());
-                            break;
-                        }
-                        else if ((key.Modifiers & ConsoleModifiers.Shift) != 0 && (key.Modifiers & ConsoleModifiers.Alt) != 0 && key.Key == Sys.ConsoleKeyEx.Z)
-                        {
-                            Language.SwitchLanguage();
-                        }
-                        else if (key.Key == Sys.ConsoleKeyEx.Backspace && cursor > 0)
-                        {
-                            input.RemoveAt(--cursor);
-                            empty_char_count++;
-                        }
-                        else if (key.Key == Sys.ConsoleKeyEx.Delete && cursor < input.Count)
-                        {
-                            input.RemoveAt(cursor);
-                            empty_char_count++;
-                        }
-                        else if (key.Key == Sys.ConsoleKeyEx.LeftArrow && cursor > 0)
-                        {
-                            cursor--;
-                        }
-                        else if (key.Key == Sys.ConsoleKeyEx.RightArrow && cursor < input.Count)
-                        {
-                            cursor++;
-                        }
-                        else if (!char.IsControl(key.KeyChar))
-                        {
-                            input.Insert(cursor, key.KeyChar);
-                            cursor++;
-                            empty_char_count = empty_char_count - 1 >= 0 ? empty_char_count - 1 : 0;
-                        }
-
-                        Console.Write(input.ToArray()); for (int i = 0; i < empty_char_count; i++) Console.Write(Convert.ToChar(0));
-                        TerminalDriver.MoveCursor(-(input.Count + empty_char_count));
-                        TerminalDriver.MoveCursor(cursor);
+                        Console.WriteLine(input.ToArray());
+                        break;
                     }
+                    else if ((key.Modifiers & ConsoleModifiers.Shift) != 0 && (key.Modifiers & ConsoleModifiers.Alt) != 0 && key.Key == Sys.ConsoleKeyEx.Z)
+                    {
+                        Language.SwitchLanguage();
+                    }
+                    else if (key.Key == Sys.ConsoleKeyEx.Backspace && cursor > 0)
+                    {
+                        input.RemoveAt(--cursor);
+                        empty_char_count++;
+                    }
+                    else if (key.Key == Sys.ConsoleKeyEx.Delete && cursor < input.Count)
+                    {
+                        input.RemoveAt(cursor);
+                        empty_char_count++;
+                    }
+                    else if (key.Key == Sys.ConsoleKeyEx.LeftArrow && cursor > 0)
+                    {
+                        cursor--;
+                    }
+                    else if (key.Key == Sys.ConsoleKeyEx.RightArrow && cursor < input.Count)
+                    {
+                        cursor++;
+                    }
+                    else if (!char.IsControl(key.KeyChar))
+                    {
+                        input.Insert(cursor, key.KeyChar);
+                        cursor++;
+                        empty_char_count = empty_char_count - 1 >= 0 ? empty_char_count - 1 : 0;
+                    }
+
+                    Console.Write(input.ToArray()); for (int i = 0; i < empty_char_count; i++) Console.Write(Convert.ToChar(0));
+                    TerminalDriver.MoveCursor(-(input.Count + empty_char_count));
+                    TerminalDriver.MoveCursor(cursor);
                 }
             }
-            catch(Exception ex) { Console.WriteLine(ex.ToString()); }
 
             return new string(input.ToArray());
         }

@@ -286,38 +286,6 @@ namespace XyBeeDOS.BuiltinApps
         }
     }
 
-    //class TerminalCommandBuiltinApp : TerminalCommand
-    //{
-    //    public string Description => "run builtin app";
-
-    //    public List<string> arguments => new List<string>() { "appName", "[arguments]" };
-
-    //    public void Execute(List<string> args)
-    //    {
-    //        try
-    //        {
-    //            int status;
-    //            string appName = args[0];
-
-    //            if (args.Count > 1)
-    //            {
-    //                args.RemoveAt(0);
-    //                status = AppList.runAppByName(appName, args);
-    //            }
-    //            else
-    //            {
-    //                status = AppList.runAppByName(appName, new List<string>() { "" });
-    //            }
-
-    //            if (status != 0) TerminalCommandManager.ShowError($"Builtin app start error. Status code {status}");
-    //        }
-    //        catch(Exception ex)
-    //        {
-    //            TerminalCommandManager.ShowError(ex.Message);
-    //        }
-    //    }
-    //}
-
     class TerminalCommandXyRun : TerminalCommand
     {
         public string Description => "run XyRun app";
@@ -359,6 +327,22 @@ namespace XyBeeDOS.BuiltinApps
         }
     }
 
+    class TerminalCommandCp : TerminalCommand
+    {
+        public string Description => "copy file";
+
+        public List<string> arguments => new List<string>() { "sourcePath", "destinationPath" };
+
+        public void Execute(List<string> args)
+        {
+            string source = args[0]; string dest = args[1];
+            if (File.Exists(source))
+            {
+                File.Copy(source, dest, true);
+            }
+        }
+    }
+
     class TerminalCommandManager
     {
         static Dictionary<string, TerminalCommand> commands = new Dictionary<string, TerminalCommand>();
@@ -388,6 +372,7 @@ namespace XyBeeDOS.BuiltinApps
             commands.Add("cd", new TerminalCommandCd());
             commands.Add("mkfile", new TerminalCommandMkfile());
             commands.Add("mkdir", new TerminalCommandMkdir());
+            commands.Add("cp", new TerminalCommandCp());
             commands.Add("rm", new TerminalCommandRm());
             commands.Add("cat", new TerminalCommandCat());
             commands.Add("listcmd", new TerminalCommandAction("show list of commands", () =>
@@ -418,7 +403,7 @@ namespace XyBeeDOS.BuiltinApps
             //{
             //    AppManager.quitApp();
             //}));
-            commands.Add(".", new TerminalCommandLanguage());
+            //commands.Add(".", new TerminalCommandLanguage());
             commands.Add("run", new TerminalCommandXyRun());
         }
 

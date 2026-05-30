@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Cosmos.System.Network.IPv4;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -9,50 +10,10 @@ using Sys = Cosmos.System;
 
 namespace XyBeeDOS.Drivers
 {
-    //class XyRunLibDriver
-    //{
-    //    Dictionary<int, Dictionary<int, int>> functions = new Dictionary<int, Dictionary<int, int>>();
-
-    //    public XyRunLibDriver() { }
-
-    //    public void loadLib(ref Stack<int> operand)
-    //    {
-    //        var lib_num = operand.Pop();
-    //        string lib_path = "";
-    //        int c;
-    //        do
-    //        {
-    //            c = operand.Pop();
-    //            lib_path += c;
-    //        }
-    //        while (c != 0);
-
-    //        exporerLib(lib_num, lib_path);
-    //    }
-
-    //    int read(FileStream file, int step_length)
-    //    {
-    //        int res = 0;
-    //        for (int i = 0; i < step_length; i++)
-    //        {
-    //            res <<= 8;
-    //            res |= file.ReadByte();
-    //        }
-    //        return res;
-    //    }
-
-    //    void exporerLib(int lib_num, string path)
-    //    {
-    //        functions[lib_num] = new Dictionary<int, int>();
-    //        using (var file = File.OpenRead(FileSystem.formatPath(path)))
-    //        {
-    //            if (read(file,4)>0) throw new 
-    //        };
-    //    }
-    //}
-
     class XyRunDriver
     {
+        static Dictionary<int,FileStream> filetreams = new Dictionary<int,FileStream>();
+
         static void sys_keyinfo_keychar(ref Stack<int> operand)
         {
             operand.Push(TerminalDriver.GetKeyInfo().KeyChar);
@@ -227,6 +188,203 @@ namespace XyBeeDOS.Drivers
             var input = TerminalInput.ReadLine();
             SetStringToStack(input, ref operand);
         }
+        static void sys_open_filestream(ref Stack<int> operand)
+        {
+            var path = FileSystem.formatPath(GetStringFromStack(ref operand));
+            var filemode = operand.Pop();
+            int address = 0;
+
+            for(int i = 0; i<filetreams.Count+1; i++) 
+            { 
+                if(!filetreams.ContainsKey(i))
+                {
+                    filetreams.Add(i, new FileStream(path, (FileMode)filemode));
+                    address = i; break;
+                }
+            }
+
+            operand.Push(address);
+        }
+        static void sys_is_filestream_can_read(ref Stack<int> operand)
+        {
+            int address = operand.Pop();
+            operand.Push(Convert.ToInt32(filetreams[address].CanRead));
+        }
+        static void sys_is_filestream_can_write(ref Stack<int> operand)
+        {
+            int address = operand.Pop();
+            operand.Push(Convert.ToInt32(filetreams[address].CanWrite));
+        }
+        static void sys_get_filestream_length(ref Stack<int> operand)
+        {
+            int address = operand.Pop();
+            operand.Push(Convert.ToInt32(filetreams[address].Length));
+        }
+        static void sys_set_filestream_length(ref Stack<int> operand)
+        {
+            int address = operand.Pop();
+            filetreams[address].SetLength(operand.Pop());
+        }
+        static void sys_get_filestream_position(ref Stack<int> operand)
+        {
+            int address = operand.Pop();
+            operand.Push(Convert.ToInt32(filetreams[address].Position));
+        }
+        static void sys_set_filestream_position(ref Stack<int> operand)
+        {
+            int address = operand.Pop();
+            filetreams[address].Position = operand.Pop();
+        }
+        static void sys_seek_filestream_position(ref Stack<int> operand)
+        {
+            int address = operand.Pop();
+            int offset = operand.Pop();
+            SeekOrigin origin = (SeekOrigin)operand.Pop();
+            filetreams[address].Seek(offset, origin);
+        }
+        static void sys_read_byte_filestream(ref Stack<int> operand)
+        {
+            int address = operand.Pop();
+            operand.Push(filetreams[address].ReadByte());
+        }
+        static void sys_write_byte_filestream(ref Stack<int> operand)
+        {
+            int address = operand.Pop();
+            filetreams[address].WriteByte((byte)operand.Pop());
+        }
+        static void sys_close_filestream(ref Stack<int> operand)
+        {
+            int address = operand.Pop();
+            filetreams[address].Close();
+            filetreams.Remove(address);
+        }
+        static void sys_set_filestream_read_timeout(ref Stack<int> operand)
+        {
+            int address = operand.Pop();
+            filetreams[address].ReadTimeout = operand.Pop();
+        }
+        static void sys_set_filestream_write_timeout(ref Stack<int> operand)
+        {
+            int address = operand.Pop();
+            filetreams[address].WriteTimeout = operand.Pop();
+        }
+        static void sys_get_filestream_read_timeout(ref Stack<int> operand)
+        {
+            int address = operand.Pop();
+            operand.Push(filetreams[address].ReadTimeout);
+        }
+        static void sys_get_filestream_write_timeout(ref Stack<int> operand)
+        {
+            int address = operand.Pop();
+            operand.Push(filetreams[address].WriteTimeout);
+        }
+        static void sys_filestream_flush(ref Stack<int> operand)
+        {
+            int address = operand.Pop();
+            filetreams[address].Flush();
+        }
+        static void sys_get_filestream_path(ref Stack<int> operand)
+        {
+            int address = operand.Pop();
+            SetStringToStack(filetreams[address].Name, ref operand);
+        }
+        static void sys_fileystem_format_path(ref Stack<int> operand)
+        {
+            SetStringToStack(FileSystem.formatPath(GetStringFromStack(ref operand)), ref operand);
+        }
+        static void sys_file_create(ref Stack<int> operand)
+        {
+            File.Create(GetStringFromStack(ref operand));
+        }
+        static void sys_file_copy(ref Stack<int> operand)
+        {
+            var source = GetStringFromStack(ref operand);
+            var dest = GetStringFromStack(ref operand);
+            File.Copy(source, dest);
+        }
+        static void sys_file_delete(ref Stack<int> operand)
+        {
+            File.Delete(GetStringFromStack(ref operand));
+        }
+        static void sys_is_filestream_exists(ref Stack<int> operand)
+        {
+            File.Exists(GetStringFromStack(ref operand));
+        }
+        //static void sys_get_file_creationtime(ref Stack<int> operand)
+        //{
+        //    var path = GetStringFromStack(ref operand);
+        //    operand.Push((int)File.GetCreationTime(path).Ticks); 
+        //}
+        //static void sys_get_file_lastaccesstime(ref Stack<int> operand)
+        //{
+        //    var path = GetStringFromStack(ref operand);
+        //    operand.Push((int)File.GetLastAccessTime(path).Ticks); 
+        //}
+        //static void sys_get_file_lastwritetime(ref Stack<int> operand)
+        //{
+        //    var path = GetStringFromStack(ref operand);
+        //    operand.Push((int)File.GetLastWriteTime(path).Ticks);
+        //}
+        //static void sys_set_file_creationtime(ref Stack<int> operand)
+        //{
+        //    var path = GetStringFromStack(ref operand);
+        //    File.SetCreationTime(path, new DateTime(operand.Pop()));
+        //}
+        //static void sys_set_file_lastaccesstime(ref Stack<int> operand)
+        //{
+        //    var path = GetStringFromStack(ref operand);
+        //    File.SetLastAccessTime(path, new DateTime(operand.Pop()));
+        //}
+        //static void sys_set_file_lastwritetime(ref Stack<int> operand)
+        //{
+        //    var path = GetStringFromStack(ref operand);
+        //    File.SetLastWriteTime(path, new DateTime(operand.Pop()));
+        //}
+        static void sys_directory_create(ref Stack<int> operand)
+        {
+            Directory.CreateDirectory(GetStringFromStack(ref operand));
+        }
+        static void sys_directory_delete(ref Stack<int> operand)
+        {
+            Directory.Delete(GetStringFromStack(ref operand));
+        }
+        static void sys_is_directory_exists(ref Stack<int> operand)
+        {
+            Directory.Exists(GetStringFromStack(ref operand));
+        }
+        static void sys_get_directory_files(ref Stack<int> operand)
+        {
+            var files = Directory.GetFiles(GetStringFromStack(ref operand));
+            files.Reverse();
+            foreach(var file in files)
+            {
+                SetStringToStack(file, ref operand);
+            }
+            operand.Push(files.Length);
+        }
+        static void sys_get_directory_directories(ref Stack<int> operand)
+        {
+            var directories = Directory.GetDirectories(GetStringFromStack(ref operand));
+            directories.Reverse();
+            foreach (var directory in directories)
+            {
+                SetStringToStack(directory, ref operand);
+            }
+            operand.Push(directories.Length);
+        }
+        static void sys_get_current_directory(ref Stack<int> operand)
+        {
+            SetStringToStack(Directory.GetCurrentDirectory(), ref operand);
+        }
+        static void sys_set_current_directory(ref Stack<int> operand)
+        {
+            Directory.SetCurrentDirectory(GetStringFromStack(ref operand));
+        }
+        static void sys_get_directory_root(ref Stack<int> operand)
+        {
+            var path = GetStringFromStack(ref operand);
+            SetStringToStack(Directory.GetDirectoryRoot(path), ref operand);
+        }
 
         public static void syscall(int syscall_num, ref Stack<int> operand)
         {
@@ -312,6 +470,66 @@ namespace XyBeeDOS.Drivers
                     sys_get_mode(ref operand); break;
                 case 39:
                     sys_readline(ref operand); break;
+                case 40:
+                    sys_open_filestream(ref operand); break;
+                case 41:
+                    sys_is_filestream_can_read(ref operand); break;
+                case 42:
+                    sys_is_filestream_can_write(ref operand); break;
+                case 43:
+                    sys_get_filestream_length(ref operand); break;
+                case 44:
+                    sys_set_filestream_length(ref operand); break;
+                case 45:
+                    sys_get_filestream_position(ref operand); break;
+                case 46:
+                    sys_set_filestream_position(ref operand); break;
+                case 47:
+                    sys_seek_filestream_position(ref operand); break;
+                case 48:
+                    sys_read_byte_filestream(ref operand); break;
+                case 49:
+                    sys_write_byte_filestream(ref operand); break;
+                case 50:
+                    sys_close_filestream(ref operand); break;
+                case 51:
+                    sys_set_filestream_read_timeout(ref operand); break;
+                case 52:
+                    sys_set_filestream_write_timeout(ref operand); break;
+                case 53:
+                    sys_get_filestream_read_timeout(ref operand); break;
+                case 54:
+                    sys_get_filestream_write_timeout(ref operand); break;
+                case 55:
+                    sys_filestream_flush(ref operand); break;
+                case 56:
+                    sys_get_filestream_path(ref operand); break;
+                case 57:
+                    sys_fileystem_format_path(ref operand); break;
+                case 58:
+                    sys_file_create(ref operand); break;
+                case 59:
+                    sys_file_copy(ref operand); break;
+                case 60:
+                    sys_file_delete(ref operand); break;
+                case 61:
+                    sys_is_filestream_exists(ref operand); break;
+                case 62:
+                    sys_directory_create(ref operand); break;
+                case 63:
+                    sys_directory_delete(ref operand); break;
+                case 64:
+                    sys_is_directory_exists(ref operand); break;
+                case 65:
+                    sys_get_directory_files(ref operand); break;
+                case 66:
+                    sys_get_directory_directories(ref operand); break;
+                case 67:
+                    sys_get_current_directory(ref operand); break;
+                case 68:
+                    sys_set_current_directory(ref operand); break;
+                case 69:
+                    sys_get_directory_root(ref operand); break;
             }
         }
 
