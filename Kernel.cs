@@ -13,7 +13,7 @@ namespace XyBeeDOS
     {
         public static string GetVersion()
         {
-            return "0.0.2";
+            return "0.1";
         }
 
         protected override void BeforeRun()

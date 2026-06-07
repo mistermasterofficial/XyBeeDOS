@@ -132,7 +132,7 @@ namespace XyBeeDOS.BuiltinApps
         }
         void oper_jmp()
         {
-            cursor_pointer = val() * step_length;
+            cursor_pointer = read() * step_length;
         }
         void oper_if()
         {
@@ -227,6 +227,17 @@ namespace XyBeeDOS.BuiltinApps
                 push(val());
             }
         }
+        void oper_bool()
+        {
+            if (pop()==0)
+            {
+                push(0);
+            }
+            else
+            {
+                push(-1);
+            }
+        }
 
         int execute(int oper_num)
         {
@@ -271,6 +282,7 @@ namespace XyBeeDOS.BuiltinApps
                 case 35: oper_throw(); break;
                 case 36: status = pop(); break;
                 case 37: oper_mnlarr(); break;
+                case 38: oper_bool(); break;
             }
             return status;
         }
@@ -326,7 +338,6 @@ namespace XyBeeDOS.BuiltinApps
         public int BeforeRun()
         {
             file = File.OpenRead(path);
-            if (val() > 0) return 1;
 
             if (args.Length == 0 || (args.Length == 1 && args[0].Length == 0)) { operand.Push(0); return 0; }
             
